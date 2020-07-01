@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name 74hc595LED)(type Legacy)(uri C:/Users/Administrator/Desktop/FinalProject/74hc595LED.lib)(options "")(descr ""))
+  (lib (name LEDMatrix-rescue)(type Legacy)(uri ${KIPRJMOD}/LEDMatrix-rescue.lib)(options "")(descr ""))
+)
