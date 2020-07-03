@@ -49,7 +49,7 @@ const byte Y = 1;
 const byte X = 0;
 // Block Orientations
 // 1, randBlock, 2, which rotation, 3, block placement, 4, coordinates 
-int8_t blocks[7][4][4][2] = {   
+byte blocks[7][4][4][2] = {   
   {
     //           (default rotation)
     //   o             o o                o
@@ -293,7 +293,7 @@ void copyStationary(){
 } // copyStationary function end
 //----------------------------------------------------------
 void drawBlock(byte copyBlocks[]){
-  for(int p = 0; p < sizeof(copyBlocks[randBlock][orientation]); p++){
+  for(int p = 0; p < 7; p++){
     bitSet(copyBlocks[blockX- blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]);
   }
 } // drawBlock function end
