@@ -10,3 +10,4 @@
 - 5 10k ohm resistors
 - 5 push buttons (4 legs)
 - pin-headers for connection
+- custom PCB in the file 
