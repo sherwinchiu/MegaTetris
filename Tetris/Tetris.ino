@@ -114,10 +114,10 @@ unsigned long timeElapsed = 0;
 
 int fallTime = 1000;
 
-const byte MOVE_LEFT = 1;
-const byte MOVE_RIGHT = 2;
-const byte ROTATE = 1;
-const byte FALL_FASTER = 1;
+const byte MOVE_RIGHT = 1;
+const byte MOVE_LEFT = 2;
+const byte ROTATE = 3;
+const byte FALL_FASTER = 4;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -139,6 +139,8 @@ void loop() {
   timeStart = millis(); // check current time
   outputColumn();   // draw column
   outputRow();      // draw row
+  copyStationary();           // copy printBlocks array into stationary blocks
+  drawBlock(printBlocks);     // draw the block to print blocks
   if((timeStart - timeElapsed) > fallTime){
     blockY--;                           // increment (move block by 1)
     if(downwardCollision()){                      // if collision
@@ -146,8 +148,6 @@ void loop() {
       drawBlock(stationaryBlocks);      // draw current block to the stationaryBlock array
       createBlock();            // create a new block
     }
-    copyStationary();           // copy printBlocks array into stationary blocks
-    drawBlock(printBlocks);     // draw the block to print blocks
     timeElapsed = timeStart;    // set the timer once more
   }
   moveLeft();   // move left
@@ -192,12 +192,11 @@ void checkDebounce(byte dir){
         orientation = 3;
     }
     else if(dir == FALL_FASTER){
-      if(digitalRead(fallFasterPin))
-        fallTime = 100;
-      else
-        fallTime = 1000;
+      fallTime = 100;
     }
-  lastDebounceTime[dir] = debounceTime[dir];
+    lastDebounceTime[dir] = debounceTime[dir];
+    outputColumn();   // draw column
+    outputRow();      // draw row
   }
 } // checkDebounce function end 
 void moveLeft(){
