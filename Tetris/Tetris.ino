@@ -274,15 +274,19 @@ boolean downwardCollision(){
 void sidewardCollision(){
   for(int p = 0; p < 4; p++){
     // Checking for collision with walls
-    if((blockX- blocks[randBlock][orientation][p][X]) >7)
+    if((blockX- blocks[randBlock][orientation][p][X]) >7){
       blockX--;
-    else if ((blockX- blocks[randBlock][orientation][p][X]) < 0)
+    }
+    else if ((blockX- blocks[randBlock][orientation][p][X]) < 0){
       blockX++;      
+    }
     // Checking for collision with other blocks
-    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]))
+    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockX - blocks[randBlock][orientation][p][X])){
       blockX--;
-    else if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]))
+    }
+    else if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockX - blocks[randBlock][orientation][p][X])){
       blockX++;
+    }
   }
 } // sidewardsCollision function end
 //----------------------------------------------------------
