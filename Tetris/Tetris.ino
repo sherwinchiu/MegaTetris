@@ -3,11 +3,13 @@
 #define   dataPin     51
 #define   clockPin    52
 
-#define   moveLeftPin     37 
-#define   moveRightPin    35
+#define   moveLeftPin     35 
+#define   moveRightPin    37
 #define   rotateLeftPin   33
 #define   rotateRightPin  31 
 #define   fallFasterPin   39
+#define   BOARD_WIDTH     8
+#define   BOARD_HEIGHT    8
 byte printBlocks[8] = {
    B00000000, // x = 0
    B00000000, // x = 1
@@ -141,6 +143,7 @@ void loop() {
   outputRow();      // draw row
   copyStationary();           // copy printBlocks array into stationary blocks
   drawBlock(printBlocks);     // draw the block to print blocks
+  sidewardCollision();        // Check for sideward collision and correct for it.
   if((timeStart - timeElapsed) > fallTime){
     blockY--;                           // increment (move block by 1)
     if(downwardCollision()){                      // if collision
@@ -239,6 +242,7 @@ void createBlock(){
   blockX = maxX;
   blockY = maxY;
 }
+//--------------------------------------------------------
 void clearBlocks(){
   byte checkFullRow = 0;
   for(int i = 0; i < sizeof(stationaryBlocks); i++){
@@ -281,6 +285,7 @@ void sidewardCollision(){
       blockX++;
   }
 } // sidewardsCollision function end
+//----------------------------------------------------------
 
 
  
