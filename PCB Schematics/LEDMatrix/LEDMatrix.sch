@@ -1,6 +1,5 @@
 EESchema Schematic File Version 4
-LIBS:LEDMatrix-cache
-EELAYER 29 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -783,9 +782,9 @@ F 3 "~" H 2030 5435 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Text GLabel 2555 3230 0    50   Input ~ 0
-OE45
+OE44
 Text GLabel 2555 3130 0    50   Input ~ 0
-OE47
+OE42
 Text GLabel 2555 3330 0    50   Input ~ 0
 SS2
 Wire Wire Line
