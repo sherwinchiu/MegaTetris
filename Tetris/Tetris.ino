@@ -280,11 +280,13 @@ void sidewardCollision(){
     else if ((blockX- blocks[randBlock][orientation][p][X]) < 0){
       blockX++;      
     }
+
+    
     // Checking for collision with other blocks
-    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockX - blocks[randBlock][orientation][p][X])){
+    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
       blockX--;
     }
-    else if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockX - blocks[randBlock][orientation][p][X])){
+    else if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
       blockX++;
     }
   }
