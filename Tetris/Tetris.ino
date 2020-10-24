@@ -170,6 +170,7 @@ void loop() {
 //---------------------------------------------------------|
 void outputRow(){
   shiftData(SS1pin, round(pow(2, rowNum)));
+  shiftData(SS2pin, round(pow(2, rowNum)));
   rowNum++;
   if (rowNum > sizeof(printBlocks)){
     rowNum = 0;
@@ -307,6 +308,3 @@ void sidewardCollision(){
   }
 } // sidewardsCollision function end
 //----------------------------------------------------------
-
-
- 
