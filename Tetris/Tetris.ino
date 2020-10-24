@@ -1,3 +1,4 @@
+#include <avr/wdt.h>
 #define   SS1pin   48 // whatever number
 #define   SS2pin   46 // whatever number
 #define   dataPin     51
@@ -5,9 +6,10 @@
 
 #define   moveLeftPin     35 
 #define   moveRightPin    37
-#define   rotateLeftPin   33
-#define   rotateRightPin  31 
+#define   rotatePin   33 
 #define   fallFasterPin   39
+#define   reset  31
+
 #define   BOARD_WIDTH     8
 #define   BOARD_HEIGHT    8
 byte printBlocks[8] = {
@@ -122,6 +124,7 @@ const byte ROTATE = 3;
 const byte FALL_FASTER = 4;
 void setup() {
   // put your setup code here, to run once:
+  
   Serial.begin(9600);
   DDRA = B11111111; // all pins are set as outputs
   pinMode(dataPin, OUTPUT);
@@ -130,9 +133,11 @@ void setup() {
   pinMode(SS2pin, OUTPUT);
   pinMode(moveLeftPin, INPUT);
   pinMode(moveRightPin, INPUT);
-  pinMode(rotateLeftPin, INPUT);
-  pinMode(rotateRightPin, INPUT);
+  pinMode(rotatePin, INPUT);
+  pinMode(reset, INPUT);
   pinMode(fallFasterPin, INPUT);
+  pinMode(A0, INPUT);
+  randomSeed(analogRead(A0));
   createBlock();
   drawBlock(printBlocks);
 }
@@ -155,8 +160,9 @@ void loop() {
   }
   moveLeft();   // move left
   moveRight();  // move right
-  rotate();
+  rotate();     // rotate
   fallFaster(); // fall faster
+  resetGame();     // reboot program
 }
 //---------------------------------------------------------|
 //                      Output Functions                   |
@@ -195,6 +201,7 @@ void checkDebounce(byte dir){
         orientation = 3;
     }
     else if(dir == FALL_FASTER){
+      Serial.println("h");
       fallTime = 100;
     }
     lastDebounceTime[dir] = debounceTime[dir];
@@ -202,6 +209,7 @@ void checkDebounce(byte dir){
     outputRow();      // draw row
   }
 } // checkDebounce function end 
+//--------------------------------------------------------
 void moveLeft(){
   if (digitalRead(moveLeftPin))
     checkDebounce(MOVE_LEFT);
@@ -211,18 +219,21 @@ void moveRight(){
     checkDebounce(MOVE_RIGHT);
 }
 void rotate(){
-  if(digitalRead(rotateLeftPin)){
-    checkDebounce(ROTATE);
-  }
-}
-void rotateRight(){
-  if(digitalRead(rotateRightPin)){
+  if(digitalRead(rotatePin)){
     checkDebounce(ROTATE);
   }
 }
 void fallFaster(){
   if(digitalRead(fallFasterPin))
     checkDebounce(FALL_FASTER);
+}
+
+void resetGame() {
+  if(digitalRead(reset)){
+    wdt_disable();
+    wdt_enable(WDTO_15MS);
+    while (1) {}
+  }
 }
 //---------------------------------------------------------|
 //                      Block Functions                    |
@@ -274,20 +285,18 @@ boolean downwardCollision(){
 void sidewardCollision(){
   for(int p = 0; p < 4; p++){
     // Checking for collision with walls
-    if((blockX- blocks[randBlock][orientation][p][X]) >7){
+    if((blockX - blocks[randBlock][orientation][p][X]) >7){
       blockX--;
     }
-    else if ((blockX- blocks[randBlock][orientation][p][X]) < 0){
+    else if ((blockX - blocks[randBlock][orientation][p][X]) < 0){
       blockX++;      
     }
-
-    
     // Checking for collision with other blocks
     if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
       blockX--;
     }
-    else if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
-      blockX++;
+    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
+      blockX+=2;
     }
   }
 } // sidewardsCollision function end
