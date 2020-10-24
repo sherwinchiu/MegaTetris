@@ -149,12 +149,13 @@ void loop() {
   copyStationary();           // copy printBlocks array into stationary blocks
   drawBlock(printBlocks);     // draw the block to print blocks
   sidewardCollision();        // Check for sideward collision and correct for it.
+  clearBlocks();
   if((timeStart - timeElapsed) > fallTime){
     blockY--;                           // increment (move block by 1)
     if(downwardCollision()){                      // if collision
       blockY++;                         // move it back
       drawBlock(stationaryBlocks);      // draw current block to the stationaryBlock array
-      createBlock();            // create a new block
+      createBlock();                    // create a new block
     }
     timeElapsed = timeStart;    // set the timer once more
   }
@@ -201,7 +202,6 @@ void checkDebounce(byte dir){
         orientation = 3;
     }
     else if(dir == FALL_FASTER){
-      Serial.println("h");
       fallTime = 100;
     }
     lastDebounceTime[dir] = debounceTime[dir];
@@ -256,14 +256,20 @@ void createBlock(){
 //--------------------------------------------------------
 void clearBlocks(){
   byte checkFullRow = 0;
-  for(int i = 0; i < sizeof(stationaryBlocks); i++){
-    for(int j = 0; j < 7; j++){
-      checkFullRow = checkFullRow +bitRead(stationaryBlocks[i], j);    
-      if (checkFullRow == 8){
-        for(int b = 0; b < sizeof(stationaryBlocks); b++)
-          bitClear(stationaryBlocks[b], j);
-        for(int c = j; c < (sizeof(stationaryBlocks)-c); c++)
-          stationaryBlocks[c] = stationaryBlocks[c+1];  
+  for(int i = 0; i < 7; i++){
+    for(int j = 0; j < sizeof(stationaryBlocks); j++){
+      checkFullRow += bitRead(stationaryBlocks[j], i); 
+    }
+    if (checkFullRow == 8){
+      checkFullRow = 0;
+      for(int n = 0; n < 7; n++){
+        bitWrite(stationaryBlocks[n], i, 0);
+      }
+      for(int j = i+1; j < 7; j++){
+        for(int n = 0; n < sizeof(stationaryBlocks); n++){
+          bitWrite(stationaryBlocks[n], j-1, bitRead(stationaryBlocks[n], j));
+          bitWrite(stationaryBlocks[n], j, 0);
+        }
       }
     }
     checkFullRow = 0;
@@ -289,7 +295,7 @@ void sidewardCollision(){
       blockX--;
     }
     else if ((blockX - blocks[randBlock][orientation][p][X]) < 0){
-      blockX++;      
+      blockX++;    
     }
     // Checking for collision with other blocks
     if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
