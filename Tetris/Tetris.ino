@@ -10,9 +10,13 @@
 #define   fallFasterPin   39
 #define   reset  31
 
+#define   OE1              44
+#define   OE2              42
+
 #define   BOARD_WIDTH     8
 #define   BOARD_HEIGHT    8
-byte printBlocks[8] = {
+
+byte printBlocks[2][8] = {{
    B00000000, // x = 0
    B00000000, // x = 1
    B00000000, // x = 2
@@ -20,9 +24,17 @@ byte printBlocks[8] = {
    B00000000,
    B00000000,
    B00000000,
+   B00000000,}
+  ,{
+   B00000000, // x = 0
+   B00000000, // x = 1
+   B00000000, // x = 2
+   B00000000, // x = 3 - block[x]; y = 7 + block[y] // bitSet(printBlocks[x], y 
    B00000000,
-   };
-byte stationaryBlocks[8] = {
+   B00000000,
+   B00000000,
+   B00000000,}};
+byte stationaryBlocks[2][8] = {{
    B00000000,
    B00000000, 
    B00000000,
@@ -30,10 +42,29 @@ byte stationaryBlocks[8] = {
    B00000000,
    B00000000,
    B00000000,
-   B00000000,// place blocks onto this 
+   B00000000,}
+   ,{
+   B00000000, // x = 0
+   B00000000, // x = 1
+   B00000000, // x = 2
+   B00000000, // x = 3 - block[x]; y = 7 + block[y] // bitSet(printBlocks[x], y 
+   B00000000,
+   B00000000,
+   B00000000,
+   B00000000,}};
+byte losingBlocks[8] = {
+   B00000000, // x = 0
+   B00000000, // x = 1
+   B01111100, // x = 2
+   B00000100, // x = 3 - block[x]; y = 7 + block[y] // bitSet(printBlocks[x], y 
+   B00000100,
+   B00000100,
+   B00000000,
+   B00000000,
   };
 unsigned long lastDebounceTime[4] = {0, 0, 0, 0};
 unsigned long debounceTime[4] = {0, 0, 0, 0};
+boolean currentMatrix = false; //False for top, true for bottom
 byte rowNum = 0;
 int8_t orientation = 1;
 const byte Y = 1; 
@@ -109,14 +140,15 @@ int8_t blocks[7][4][4][2] = {
 int randBlock = 0;
 
 int8_t blockX = 3;
-int8_t blockY = 7;
+int8_t blockY = 15;
 
-byte maxY = 7;
-byte maxX = 3;
+const byte MAX_Y = 15;
+const byte MAX_X = 3;
 unsigned long timeStart = 0;
 unsigned long timeElapsed = 0;
 
-int fallTime = 1000;
+int fallTime = 300;
+int losingCounter = 0;
 
 const byte MOVE_RIGHT = 1;
 const byte MOVE_LEFT = 2;
@@ -124,9 +156,12 @@ const byte ROTATE = 3;
 const byte FALL_FASTER = 4;
 void setup() {
   // put your setup code here, to run once:
-  
   Serial.begin(9600);
   DDRA = B11111111; // all pins are set as outputs
+  pinMode(OE1, OUTPUT);
+  pinMode(OE2, OUTPUT);
+  digitalWrite(OE1, LOW);
+  digitalWrite(OE2, LOW);
   pinMode(dataPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(SS1pin, OUTPUT);
@@ -144,17 +179,17 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   timeStart = millis(); // check current time
+  losingScreen();
   outputColumn();   // draw column
   outputRow();      // draw row
   copyStationary();           // copy printBlocks array into stationary blocks
-  drawBlock(printBlocks);     // draw the block to print blocks
   sidewardCollision();        // Check for sideward collision and correct for it.
-  clearBlocks();
+  drawMatrixes();
   if((timeStart - timeElapsed) > fallTime){
     blockY--;                           // increment (move block by 1)
     if(downwardCollision()){                      // if collision
       blockY++;                         // move it back
-      drawBlock(stationaryBlocks);      // draw current block to the stationaryBlock array
+      copyMatrixes();
       createBlock();                    // create a new block
     }
     timeElapsed = timeStart;    // set the timer once more
@@ -169,15 +204,21 @@ void loop() {
 //                      Output Functions                   |
 //---------------------------------------------------------|
 void outputRow(){
-  shiftData(SS1pin, round(pow(2, rowNum)));
-  shiftData(SS2pin, round(pow(2, rowNum)));
+  if(currentMatrix)
+    shiftData(SS2pin, round(pow(2, rowNum)));
+  else if(!currentMatrix)
+    shiftData(SS1pin, round(pow(2, rowNum)));
   rowNum++;
-  if (rowNum > sizeof(printBlocks)){
+  if (rowNum > sizeof(printBlocks[0])){
+    currentMatrix=!currentMatrix;
     rowNum = 0;
   }
 }
 void outputColumn(){
-  PORTA = ~printBlocks[rowNum];
+  if(currentMatrix)
+    PORTA = ~printBlocks[0][rowNum];
+  else if (!currentMatrix)
+    PORTA = ~printBlocks[1][rowNum];
 }
 void shiftData(byte storage, byte data){
   digitalWrite(storage, LOW);
@@ -203,7 +244,7 @@ void checkDebounce(byte dir){
         orientation = 3;
     }
     else if(dir == FALL_FASTER){
-      fallTime = 100;
+      blockY--;
     }
     lastDebounceTime[dir] = debounceTime[dir];
     outputColumn();   // draw column
@@ -239,40 +280,61 @@ void resetGame() {
 //---------------------------------------------------------|
 //                      Block Functions                    |
 //---------------------------------------------------------|
-void drawBlock(byte copyBlocks[]){
+void drawMatrixes(){
+  drawBlock(printBlocks);     // draw the block to print blocks
+  clearBlocks(stationaryBlocks);
+}
+void copyMatrixes(){
+  drawBlock(stationaryBlocks);
+//  for(int p = 0; p < 4; p++){
+//    if(blockY+ blocks[randBlock][orientation][p][Y] > 7)
+//      drawBlock(stationaryBlocks[0]);      // draw current block to the stationaryBlock array
+//    else 
+//      drawBlock(stationaryBlocks[1]);
+//  }
+}
+void drawBlock(byte copyBlocks[2][8]){
   for(int p = 0; p < 4; p++){
-    bitSet(copyBlocks[blockX- blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]);
+    if(blockY+ blocks[randBlock][orientation][p][Y] > 7)
+      bitSet(copyBlocks[0][blockX- blocks[randBlock][orientation][p][X]], blockY-8 + blocks[randBlock][orientation][p][Y]);
+    else
+      bitSet(copyBlocks[1][blockX- blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]);
   }
 }
 void copyStationary(){
   // destination, source, numbytes
-  memcpy(printBlocks, stationaryBlocks, 8);
+  for(int i = 0; i < 2; i++)
+    memcpy(printBlocks[i], stationaryBlocks[i], 8);
+ 
 }
 void createBlock(){
   randBlock = random(7);
   orientation = 1;
-  blockX = maxX;
-  blockY = maxY;
+  blockX = MAX_X;
+  blockY = MAX_Y;
 }
 //--------------------------------------------------------
-void clearBlocks(){
+void clearBlocks(byte copyBlocks[2][8]){
   byte checkFullRow = 0;
-  for(int i = 0; i < 7; i++){
-    for(int j = 0; j < sizeof(stationaryBlocks); j++){
-      checkFullRow += bitRead(stationaryBlocks[j], i); 
-    }
-    if (checkFullRow == 8){
-      checkFullRow = 0;
-      for(int n = 0; n < 7; n++){
-        bitWrite(stationaryBlocks[n], i, 0);
+  for(int q = 0; q < 2; q++){
+    for(int i = 0; i < 7; i++){
+      for(int j = 0; j < sizeof(copyBlocks[q]); j++){
+        checkFullRow += bitRead(copyBlocks[q][j], i); 
       }
-      for(int j = i+1; j < 7; j++){
-        for(int n = 0; n < sizeof(stationaryBlocks); n++){
-          bitWrite(stationaryBlocks[n], j-1, bitRead(stationaryBlocks[n], j));
-          bitWrite(stationaryBlocks[n], j, 0);
+      if (checkFullRow == 8){
+        checkFullRow = 0;
+        for(int n = 0; n < 7; n++){
+          bitWrite(copyBlocks[q][n], i, 0);
+        }
+        for(int j = i+1; j < 7; j++){
+          for(int n = 0; n < sizeof(copyBlocks[q]); n++){
+            bitWrite(copyBlocks[q][n], j-1, bitRead(copyBlocks[q][n], j));
+            bitWrite(copyBlocks[q][n], j, 0);
+          }
         }
       }
-    }
+      checkFullRow = 0;
+    } 
     checkFullRow = 0;
   }
 }
@@ -283,8 +345,13 @@ boolean downwardCollision(){
   for(int p = 0; p < 4; p++){
     if(blockY + blocks[randBlock][orientation][p][Y] < 0)
       return true;
-    if(bitRead(stationaryBlocks[blockX- blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]))
-      return true;
+    if (blockY+ blocks[randBlock][orientation][p][Y] > 7){
+      if(bitRead(stationaryBlocks[0][blockX- blocks[randBlock][orientation][p][X]], blockY-8 + blocks[randBlock][orientation][p][Y]))
+        return true;
+    } else{
+      if(bitRead(stationaryBlocks[1][blockX- blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y]))
+        return true;
+    }
   }
   return false;
 } // downwardCollision function end
@@ -299,12 +366,32 @@ void sidewardCollision(){
       blockX++;    
     }
     // Checking for collision with other blocks
-    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
-      blockX--;
-    }
-    if (bitRead(stationaryBlocks[blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
-      blockX+=2;
+    if(blockY+ blocks[randBlock][orientation][p][Y] > 7){
+      if (bitRead(stationaryBlocks[0][blockX-blocks[randBlock][orientation][p][X]], blockY-8 + blocks[randBlock][orientation][p][Y])){
+        blockX--;
+      }
+      if (bitRead(stationaryBlocks[0][blockX-blocks[randBlock][orientation][p][X]], blockY-8 + blocks[randBlock][orientation][p][Y])){
+        blockX+=2;
+      }
+    } else{
+      if (bitRead(stationaryBlocks[1][blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
+        blockX--;
+      }
+      if (bitRead(stationaryBlocks[1][blockX-blocks[randBlock][orientation][p][X]], blockY + blocks[randBlock][orientation][p][Y])){
+        blockX+=2;
+      }
     }
   }
 } // sidewardsCollision function end
 //----------------------------------------------------------
+void losingScreen(){
+  for(int i = 0; i < 7; i++){
+    losingCounter += bitRead(printBlocks[0][i], 7);
+  } if (losingCounter > 6){
+    memcpy(stationaryBlocks[0], losingBlocks, 8);
+    memcpy(stationaryBlocks[1], losingBlocks, 8);
+  } else{
+    losingCounter = 0;
+  }
+  
+}
